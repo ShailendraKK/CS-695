@@ -72,6 +72,13 @@ It sets bitmasks:
 #define PDE64_G (1U << 8)
 
 
+
+#define HC_status 0x8000
+#define HC_open  (HC_status | 0)
+#define HC_read  (HC_status | 1)
+#define HC_write  (HC_status | 2)
+
+
 struct vm {
 	int sys_fd;
 	int fd;
@@ -270,6 +277,92 @@ struct vcpu {
 	struct kvm_run *kvm_run;
 };
 
+static void hyper_open(struct vm *vm,struct vcpu *vcpu)
+{
+	static int ret_fd=0;
+	char* filename;
+	uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
+	//char *loc = (char*)vcpu->kvm_run + *offset;
+	if(vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT){
+				//char filename[] =&();
+		printf("\n filename : %s\n",&vm->mem[*offset]);
+		filename = &vm->mem[*offset];
+		int fd = open(filename,O_RDWR | O_CREAT,00700);
+		
+		if(fd<0){
+			perror("KVM_IO");
+			exit(1);
+		}
+		else{
+			ret_fd=fd;
+		}
+
+	}
+	else{
+		
+		*offset = ret_fd;
+	}
+	
+}
+
+static int hyper_read(struct vcpu *vcpu)
+{
+	int bytes_read=0;
+	static char buff[10];
+	static int flag =0;
+	static int i=0;
+	uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
+	//size_t count=10;
+	//uint32_t offset = *(uint32_t*)((uint8_t*)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
+/*	char *p = (char *)vcpu->kvm_run;
+	char *offset =p + vcpu->kvm_run->io.data_offset;
+	*/
+	if(vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT){
+		//int fd = *offset;
+		flag =1;
+		char *filename = "demo1234";
+		int fd = open(filename,O_RDONLY,00700);
+		bytes_read=read(fd,buff,10);
+
+		if(bytes_read<0){
+			perror("KVM_IO");
+			exit(1);
+		}
+		else{
+			
+			
+			return bytes_read;
+		}
+
+	}
+	else{
+				if(flag ==2){
+			*offset = buff[i];
+			i++;
+		}
+		if(flag ==1){
+		flag =2;	
+		*offset = sizeof(buff);
+		}
+
+		
+		return bytes_read;
+	}
+}
+static void hyper_write(struct vm *vm,struct vcpu *vcpu)
+{
+uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
+	if(vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT){
+		char *data = &vm->mem[*offset];;
+		int tmp =write(8,data,10);
+		if(tmp < 0){
+			perror("KVM_IO");
+			exit(1);
+		}
+	}
+	
+}
+
 void vcpu_init(struct vm *vm, struct vcpu *vcpu)
 {
 
@@ -385,7 +478,7 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz)
 		 * 
 		 * */
 		 numExits++;
-		 printf("\n In KVM io\n");
+	
 			if (vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT
 			    && vcpu->kvm_run->io.port == 0xE9) {
 				char *p = (char *)vcpu->kvm_run;
@@ -407,9 +500,10 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz)
 			if (vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT
 			    && vcpu->kvm_run->io.port == 0xE5) {
 				printf("\n String Output start from guest \n");
-					uint32_t *offset = (uint32_t*)((uint8_t*)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
-    				char *str = (char*) offset;
-					printf("%s",str);
+					uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
+    			//	int offset1 = *offset;
+					//char *str = (char*) *offset;
+					printf("%s",(&vm->mem[*offset]));
 					//char* tmp;
 					//memcpy(&tmp, &vm->mem[0x500], sz);
 					///printf("%s",vm->mem[0x500]);
@@ -432,7 +526,18 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz)
 				*offset = numExits;
 				continue;
 			}
-
+					if(vcpu->kvm_run->io.port & HC_status){
+				switch(vcpu ->kvm_run->io.port){
+					case HC_open: hyper_open(vm,vcpu);
+									continue;
+					case HC_read: 
+									hyper_read(vcpu);
+									continue;
+					case HC_write: 	
+									hyper_write(vm,vcpu);
+									continue;
+				}		
+			}
 			/* fall through */
 		default:
 		printf("\n In Default\n");
