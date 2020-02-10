@@ -73,10 +73,15 @@ It sets bitmasks:
 
 
 
+
+
 #define HC_status 0x8000
 #define HC_open  (HC_status | 0)
 #define HC_read  (HC_status | 1)
 #define HC_write  (HC_status | 2)
+
+enum open_param{pathname,flags,mode};
+enum read_write{fd,buf,count};
 
 
 struct vm {
@@ -280,14 +285,23 @@ struct vcpu {
 static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 {
 	static int ret_fd=0;
+	static int param_num =2;
 	char* filename;
+	
+	static int open_flags;
+	static int open_mode;
 	uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
 	//char *loc = (char*)vcpu->kvm_run + *offset;
 	if(vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT){
 				//char filename[] =&();
-		printf("\n filename : %s\n",&vm->mem[*offset]);
+		switch (param_num)
+		{
+		case pathname:
+			/* code */
+					printf("\n filename : %s\n",&vm->mem[*offset]);
 		filename = &vm->mem[*offset];
-		int fd = open(filename,O_RDWR | O_CREAT,00700);
+		// int fd = open(filename,O_RDWR | O_CREAT,00700);
+		int fd = open(filename,open_flags,open_mode);
 		
 		if(fd<0){
 			perror("KVM_IO");
@@ -296,6 +310,21 @@ static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 		else{
 			ret_fd=fd;
 		}
+		param_num =2;
+			break;
+		
+		case flags:
+			open_flags = *offset;
+			break;
+		case mode:
+			open_mode = *offset;
+			break;
+
+		default:
+			break;
+		}
+		param_num--;
+
 
 	}
 	else{
@@ -351,14 +380,41 @@ static int hyper_read(struct vcpu *vcpu)
 }
 static void hyper_write(struct vm *vm,struct vcpu *vcpu)
 {
+		static int write_fd;
+		static size_t write_count;
+		static int param_num=2;
+		static char * data;
 uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
 	if(vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT){
-		char *data = &vm->mem[*offset];;
-		int tmp =write(8,data,10);
+		
+		switch (param_num)
+		{
+				
+		
+		case fd:
+			write_fd = *offset;
+			
+					int tmp =write(write_fd,data,write_count);
 		if(tmp < 0){
 			perror("KVM_IO");
 			exit(1);
 		}
+		break;
+		case buf:
+					data = &vm->mem[*offset];;
+
+		break;
+
+		case count:
+			write_count = *offset;
+		break;
+
+
+		
+		default:
+			break;
+		}
+
 	}
 	
 }

@@ -1,11 +1,93 @@
 #include <stddef.h>
 #include <stdint.h>
 
+  /*  #include <sys/types.h>
+       #include <sys/stat.h>
+       #include <fcntl.h>*/
+
 #define HC_status 0x8000
 #define HC_open  (HC_status | 0)
 #define HC_read  (HC_status | 1)
 #define HC_write  (HC_status | 2)
 
+
+#define O_ACCMODE	   0003
+#define O_RDONLY	     00
+#define O_WRONLY	     01
+#define O_RDWR		     02
+#ifndef O_CREAT
+# define O_CREAT	   0100	/* Not fcntl.  */
+#endif
+#ifndef O_EXCL
+# define O_EXCL		   0200	/* Not fcntl.  */
+#endif
+#ifndef O_NOCTTY
+# define O_NOCTTY	   0400	/* Not fcntl.  */
+#endif
+#ifndef O_TRUNC
+# define O_TRUNC	  01000	/* Not fcntl.  */
+#endif
+#ifndef O_APPEND
+# define O_APPEND	  02000
+#endif
+#ifndef O_NONBLOCK
+# define O_NONBLOCK	  04000
+#endif
+#ifndef O_NDELAY
+# define O_NDELAY	O_NONBLOCK
+#endif
+#ifndef O_SYNC
+# define O_SYNC	       04010000
+#endif
+#define O_FSYNC		O_SYNC
+#ifndef O_ASYNC
+# define O_ASYNC	 020000
+#endif
+#ifndef __O_LARGEFILE
+# define __O_LARGEFILE	0100000
+#endif
+
+#ifndef __O_DIRECTORY
+# define __O_DIRECTORY	0200000
+#endif
+#ifndef __O_NOFOLLOW
+# define __O_NOFOLLOW	0400000
+#endif
+#ifndef __O_CLOEXEC
+# define __O_CLOEXEC   02000000
+#endif
+#ifndef __O_DIRECT
+# define __O_DIRECT	 040000
+#endif
+#ifndef __O_NOATIME
+# define __O_NOATIME   01000000
+#endif
+#ifndef __O_PATH
+# define __O_PATH     010000000
+#endif
+#ifndef __O_DSYNC
+# define __O_DSYNC	 010000
+#endif
+#ifndef __O_TMPFILE
+# define __O_TMPFILE   (020000000 | __O_DIRECTORY)
+#endif
+
+#ifndef F_GETLK
+# ifndef __USE_FILE_OFFSET64
+#  define F_GETLK	5	/* Get record locking info.  */
+#  define F_SETLK	6	/* Set record locking info (non-blocking).  */
+#  define F_SETLKW	7	/* Set record locking info (blocking).  */
+# else
+#  define F_GETLK	F_GETLK64  /* Get record locking info.  */
+#  define F_SETLK	F_SETLK64  /* Set record locking info (non-blocking).*/
+#  define F_SETLKW	F_SETLKW64 /* Set record locking info (blocking).  */
+# endif
+#endif
+#ifndef F_GETLK64
+# define F_GETLK64	12	/* Get record locking info.  */
+# define F_SETLK64	13	/* Set record locking info (non-blocking).  */
+# define F_SETLKW64	14	/* Set record locking info (blocking).  */
+#endif
 /**
  * 
  * Sends a 8/16/32-bit value on a I/O location. 
@@ -63,10 +145,12 @@ static inline uint32_t getNumExits(){
   return ret;
 }
 
-static inline uint32_t open(const char *str){
+static inline uint32_t open(const char *pathname, uint32_t flags, uint32_t mode){
 
 	uint32_t ret;
-	uint32_t  addr = (uintptr_t) str;
+	uint32_t  addr = (uintptr_t) pathname;
+	printVal(HC_open,mode);
+	printVal(HC_open,flags);
 	printVal(HC_open,addr);
 
 	ret = inb(HC_open);
@@ -124,7 +208,7 @@ _start(void) {
 	display("HI VM from guest");
 	numExits = getNumExits();
 	printVal(0xE8,numExits);
-	uint32_t open_fd = open("demo1234");
+	uint32_t open_fd = open("demo_new",O_RDWR | O_CREAT,00700);
 	printVal(0xE8,open_fd);
 	write("this is test 1");
 	write("this is test 2");
