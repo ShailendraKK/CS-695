@@ -1,6 +1,5 @@
 #include <stddef.h>
 #include <stdint.h>
-
   /*  #include <sys/types.h>
        #include <sys/stat.h>
        #include <fcntl.h>*/
@@ -9,6 +8,7 @@
 #define HC_open  (HC_status | 0)
 #define HC_read  (HC_status | 1)
 #define HC_write  (HC_status | 2)
+
 
 
 #define O_ACCMODE	   0003
@@ -139,42 +139,56 @@ static inline uint32_t inb(uint16_t port) {
   return ret;
 }
 
+static inline int in(uint16_t port) {
+  int ret;
+  asm("in %1, %0" : "=a"(ret) : "Nd"(port) : "memory" );
+  return ret;
+}
+
 static inline uint32_t getNumExits(){
   uint32_t ret;
   ret = inb(0xE7);
   return ret;
 }
 
-static inline uint32_t open(const char *pathname, uint32_t flags, uint32_t mode){
+static inline int open(const char *pathname, uint32_t flags, uint32_t mode){
 
-	uint32_t ret;
+	int ret;
 	uint32_t  addr = (uintptr_t) pathname;
 	printVal(HC_open,mode);
 	printVal(HC_open,flags);
 	printVal(HC_open,addr);
 
-	ret = inb(HC_open);
+	ret = in(HC_open);
 	return ret;
 }
-static inline char * read(uint32_t fd,char buff[]/*,size_t count*/){
+static inline int read(int fd, void *buf, size_t count){
 	//uint32_t *addr = (uint32_t *) str;
 	//char* ret;
 		//uint32_t *addr =  &fd;
+		char * char_buff =(char * )buf;
+		printVal(HC_read,count);
 	printVal(HC_read,fd);
 	
-	uint32_t num= inb(HC_read);
-	for(uint32_t i =0;i<num;i++){
-		buff[i] = inb(HC_read);
+	uint32_t bytes_read= inb(HC_read);
+	for(uint32_t i =0;i<bytes_read;i++){
+		char_buff[i] = inb(HC_read);
 		//display(buff);
 	}
 	
-	return buff;
+	return bytes_read;
 }
-static inline void/* char * */ write(/*uint32_t fd,*/char *buff/*,size_t count*/){
+static inline int write(int fd, const void *buf, size_t count){
 	//uint32_t *addr = (uint32_t *) str;
 	//char* ret;
-		uint32_t  addr = (uintptr_t) buff;
+	int ret;
+		uint32_t  addr = (uintptr_t) buf;
+		printVal(HC_write,count);
+		
 	printVal(HC_write,addr);
+	printVal(HC_write,fd);
+	ret = inb(HC_write);
+	return ret;
 
 	//*buff = inb(HC_write);
 	//return buff;
@@ -210,10 +224,13 @@ _start(void) {
 	printVal(0xE8,numExits);
 	uint32_t open_fd = open("demo_new",O_RDWR | O_CREAT,00700);
 	printVal(0xE8,open_fd);
-	write("this is test 1");
-	write("this is test 2");
-	char read_buff[100];
-	read(open_fd,read_buff);
+	char tmp[]="This is write demo";
+	int bytes_written = write(open_fd,tmp,sizeof(tmp));
+	printVal(0xE8,bytes_written);
+	// write("this is test 1");
+	// write("this is test 2");
+	char read_buff[bytes_written];
+	read(open_fd,read_buff,sizeof(read_buff));
 	display(read_buff);
 	//char read_buff[10];
 	//read(open_fd,read_buff);
