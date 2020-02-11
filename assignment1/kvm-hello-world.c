@@ -80,6 +80,7 @@ It sets bitmasks:
 #define HC_read  (HC_status | 1)
 #define HC_write  (HC_status | 2)
 #define HC_close  (HC_status | 3)
+#define HC_seek  (HC_status | 4)
 
 #define MAX_FD 100
 enum open_param{pathname,flags,mode};
@@ -317,6 +318,7 @@ int find_min_fd(){
 */
 static void hyper_close(struct vcpu *vcpu)
 {
+
 	static int ret_status=0;
 	static int fd;
 	uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
@@ -422,7 +424,7 @@ static void hyper_read(struct vcpu *vcpu)
 					read_fd = *offset;
 					data = (char *) malloc(read_count * sizeof(char));
 					//int fd_tmp = open("demo_new",O_RDONLY,00700);
-					lseek(read_fd,0,SEEK_SET);
+					// lseek(read_fd,0,SEEK_SET);
 					bytes_read=read(read_fd,data,read_count);
 					param_num = 1;
 					if(bytes_read < 0){
@@ -516,6 +518,55 @@ uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data
 	
 }
 
+static void hyper_seek(struct vcpu *vcpu)
+{
+		static int seek_fd;
+		static int seek_offset;
+			static int whence;
+		static int param_num=2;
+		static int ret;
+	
+uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
+	if(vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT){
+		
+		switch (param_num)
+		{
+				
+		
+		case fd:
+			seek_fd = *offset;
+			
+					ret=lseek(seek_fd,seek_offset,whence);
+					param_num = 2;
+		if(ret < 0){
+			perror("KVM_IO");
+			exit(1);
+		}
+		break;
+		case buf:
+					seek_offset = *offset;
+					param_num --;
+
+		break;
+
+		case count:
+			whence = *offset;
+			param_num --;
+		break;
+
+
+		
+		default:
+			break;
+		}
+		
+
+	}
+	else{
+		*offset = ret;
+	}
+	
+}
 void vcpu_init(struct vm *vm, struct vcpu *vcpu)
 {
 
@@ -690,6 +741,8 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz)
 									hyper_write(vm,vcpu);
 									continue;
 					case HC_close: hyper_close(vcpu);
+									continue;
+					case HC_seek : hyper_seek(vcpu);
 									continue;
 				}		
 			}

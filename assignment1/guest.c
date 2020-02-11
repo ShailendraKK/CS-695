@@ -9,6 +9,7 @@
 #define HC_read  (HC_status | 1)
 #define HC_write  (HC_status | 2)
 #define HC_close  (HC_status | 3)
+#define HC_seek  (HC_status | 4)
 
 
 
@@ -166,6 +167,16 @@
 #define	__S_IWRITE	0200	/* Write by owner.  */
 #define	__S_IEXEC	0100	/* Execute by owner.  */
 
+/* The possibilities for the third argument to `fseek'.
+   These values should not be changed.  */
+#define SEEK_SET	0	/* Seek from beginning of file.  */
+#define SEEK_CUR	1	/* Seek from current position.  */
+#define SEEK_END	2	/* Seek from end of file.  */
+#ifdef __USE_GNU
+# define SEEK_DATA	3	/* Seek to next data.  */
+# define SEEK_HOLE	4	/* Seek to next hole.  */
+#endif
+
 /**
  * 
  * Sends a 8/16/32-bit value on a I/O location. 
@@ -280,12 +291,27 @@ static inline int write(int fd, const void *buf, size_t count){
 	//return buff;
 }
 
+static inline int lseek(int fd, int offset, int whence){
+	
+		int ret;
+		
+		printVal(HC_seek,whence);
+		printVal(HC_seek,offset);
+		printVal(HC_seek,fd);
+	ret = inb(HC_seek);
+	return ret;
+
+	//*buff = inb(HC_write);
+	//return buff;
+}
+
 
 void
 __attribute__((noreturn))
 __attribute__((section(".start")))
 _start(void) {
 	const char *p;
+	uint32_t status;
 	//char * bytes_written=0;
 
 /**
@@ -301,10 +327,7 @@ _start(void) {
 		outb(0xE9, *p);
 	uint32_t numExits = getNumExits();
 	printVal(0xE8,numExits);
-		
-	
-	//*(long **) 0x500 = (long *)str;
-	//char demo[]="Hi VM Hello";
+
 	display("HI VM from guest");
 	numExits = getNumExits();
 	printVal(0xE8,numExits);
@@ -316,21 +339,14 @@ _start(void) {
 	int bytes_written = write(open_fd,tmp,sizeof(tmp)-1);
 	printVal(0xE8,bytes_written);
 	char read_buff[100];
+	status =lseek(open_fd,0,SEEK_SET);
+
+	printVal(0xE8,status);
 	read(open_fd,read_buff,sizeof(read_buff));
 	display(read_buff);
-	uint32_t status = close(open_fd);
+	status= close(open_fd);
 	printVal(0xE8,status);
 
-	// write("this is test 1");
-	// write("this is test 2");
-	
-	//char read_buff[10];
-	//read(open_fd,read_buff);
-	//printVal(0xE8,bytes_read);
-	//display(read_buff);
-	//write("xyz123");
-	//bytes_written = write("xyz");
-	//display(bytes_written);
 	
 
 
