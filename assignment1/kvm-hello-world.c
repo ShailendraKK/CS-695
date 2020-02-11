@@ -17,7 +17,7 @@ It sets bitmasks:
 1U << 1 = 2   
 1U << 2 = 4
 
- * */
+ * */	
 #define CR0_PE 1u
 #define CR0_MP (1U << 1)
 #define CR0_EM (1U << 2)   
@@ -79,7 +79,9 @@ It sets bitmasks:
 #define HC_open  (HC_status | 0)
 #define HC_read  (HC_status | 1)
 #define HC_write  (HC_status | 2)
+#define HC_close  (HC_status | 3)
 
+#define MAX_FD 100
 enum open_param{pathname,flags,mode};
 enum read_write{fd,buf,count};
 
@@ -103,6 +105,7 @@ void vm_init(struct vm *vm, size_t mem_size)
 	 * Ans:
 	 * 2MB
 	 * */
+	
 	printf("the size of the guest memory (that the guest perceives as its physical memory) : %ld bytes \n",mem_size);
 	int api_ver;
 	struct kvm_userspace_memory_region memreg;
@@ -281,7 +284,55 @@ struct vcpu {
 	int fd;
 	struct kvm_run *kvm_run;
 };
+/*
+static int fd_list[100];
+static int fd_use[100];
 
+
+void init_fd(){
+	static int first_time_init=0;
+	if(first_time_init ==0)
+	{
+		first_time_init =1;
+	for(int i=0;i<=2;i++){
+		fd_list[i]=i;
+		fd_use[i]=1;
+	}
+   for(int i=3;i<MAX_FD;i++){
+	   fd_use[i]=0;
+
+   }
+}
+
+
+}
+int find_min_fd(){
+	for(int i=3;i<MAX_FD;i++){
+		if(fd_use[i]==0){
+			return i;
+		}
+	}
+	return -1;
+}
+*/
+static void hyper_close(struct vcpu *vcpu)
+{
+	static int ret_status=0;
+	static int fd;
+	uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
+
+	if(vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT){
+		
+		fd = *offset;
+		ret_status =close(fd);
+
+	}
+	else{
+		
+		*offset = ret_status;
+	}
+	
+}
 static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 {
 	static int ret_fd=0;
@@ -290,6 +341,8 @@ static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 	
 	static int open_flags;
 	static int open_mode;
+	// void init_fd();
+	
 	uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
 	//char *loc = (char*)vcpu->kvm_run + *offset;
 	if(vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT){
@@ -300,6 +353,12 @@ static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 			/* code */
 					printf("\n filename : %s\n",&vm->mem[*offset]);
 		filename = &vm->mem[*offset];
+		// int min_fd = find_min_fd();
+		// if(min_fd==-1){
+		// 	perror("KVM_IO");
+		// 	exit(1);
+		// }
+
 		// int fd = open(filename,O_RDWR | O_CREAT,00700);
 		int fd = open(filename,open_flags,open_mode);
 		
@@ -308,6 +367,8 @@ static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 			exit(1);
 		}
 		else{
+			// fd_list[min_fd]=fd;
+			// fd_use[min_fd]=1;
 			ret_fd=fd;
 		}
 		param_num =2;
@@ -338,7 +399,7 @@ static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 
 static void hyper_read(struct vcpu *vcpu)
 {
-		//	static int read_fd;
+			static int read_fd;
 		static size_t read_count;
 		static int param_num=1;
 		static int i=0;
@@ -358,10 +419,11 @@ static void hyper_read(struct vcpu *vcpu)
 		switch (param_num)
 		{
 		case fd:
-					//read_fd = *offset;
+					read_fd = *offset;
 					data = (char *) malloc(read_count * sizeof(char));
-					int fd_tmp = open("demo_new",O_RDONLY,00700);
-					bytes_read=read(fd_tmp,data,read_count);
+					//int fd_tmp = open("demo_new",O_RDONLY,00700);
+					lseek(read_fd,0,SEEK_SET);
+					bytes_read=read(read_fd,data,read_count);
 					param_num = 1;
 					if(bytes_read < 0){
 					perror("KVM_IO");
@@ -626,6 +688,8 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz)
 									continue;
 					case HC_write: 	
 									hyper_write(vm,vcpu);
+									continue;
+					case HC_close: hyper_close(vcpu);
 									continue;
 				}		
 			}
