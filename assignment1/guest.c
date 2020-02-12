@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <stdint.h>
+#include <stdarg.h>
   /*  #include <sys/types.h>
        #include <sys/stat.h>
        #include <fcntl.h>*/
@@ -97,10 +98,8 @@
 # define S_ISUID	__S_ISUID       /* Set user ID on execution.  */
 # define S_ISGID	__S_ISGID       /* Set group ID on execution.  */
 
-# if defined __USE_MISC || defined __USE_XOPEN
-/* Save swapped text after use (sticky bit).  This is pretty well obsolete.  */
 #  define S_ISVTX	__S_ISVTX
-# endif
+
 
 # define S_IRUSR	__S_IREAD       /* Read by owner.  */
 # define S_IWUSR	__S_IWRITE      /* Write by owner.  */
@@ -240,15 +239,77 @@ static inline uint32_t getNumExits(){
   return ret;
 }
 
-static inline int open(const char *pathname, uint32_t flags, uint32_t mode){
+uint32_t check_mode(uint32_t mode){
+	uint32_t ret;
+	switch (mode)
+	{
+	case S_IRWXU: ret =mode;
+		break;
+	
+	case S_IRUSR: ret =mode;
+		break;
+	
+	case S_IWUSR: ret =mode;
+		break;
+
+	case S_IXUSR: ret =mode;
+		break;
+
+	case S_IRWXG: ret =mode;
+		break;
+	
+	case S_IRGRP: ret =mode;
+		break;
+
+	case S_IWGRP: ret =mode;
+		break;
+
+	case S_IXGRP: ret =mode;
+		break;
+
+	case S_IRWXO: ret =mode;
+		break;
+
+	case S_IROTH: ret =mode;
+		break;
+
+	case S_IWOTH: ret =mode;
+		break;
+
+	case S_IXOTH: ret =mode;
+		break;
+
+	case S_ISUID: ret =mode;
+		break;
+
+	case S_ISGID: ret =mode;
+		break;
+
+	case S_ISVTX: ret =mode;
+		break;
+
+	default:
+		ret =0;
+		break;
+	}
+	return ret;
+}
+static inline int open(const char *pathname, uint32_t flags, ...){
 
 	int ret;
+	va_list arg;
+	va_start(arg, flags); 
+	uint32_t mode = va_arg(arg,int);
+	display("mode value");
+	printVal(0xE8,mode);
 	uint32_t  addr = (uintptr_t) pathname;
-	printVal(HC_open,mode);
+	uint32_t check_mode_value =check_mode(mode); 
+	printVal(HC_open,check_mode_value);
 	printVal(HC_open,flags);
 	printVal(HC_open,addr);
-
+	
 	ret = in(HC_open);
+	va_end(arg);
 	return ret;
 }
 
@@ -311,7 +372,7 @@ __attribute__((noreturn))
 __attribute__((section(".start")))
 _start(void) {
 	const char *p;
-	uint32_t status;
+	//uint32_t status;
 	//char * bytes_written=0;
 
 /**
@@ -339,13 +400,30 @@ _start(void) {
 	int bytes_written = write(open_fd,tmp,sizeof(tmp)-1);
 	printVal(0xE8,bytes_written);
 	char read_buff[100];
-	status =lseek(open_fd,0,SEEK_SET);
+	lseek(open_fd,0,SEEK_SET);
 
-	printVal(0xE8,status);
+	
 	read(open_fd,read_buff,sizeof(read_buff));
 	display(read_buff);
-	status= close(open_fd);
-	printVal(0xE8,status);
+	// close(open_fd);
+	char read_buff1[100];
+	int open_fd1=open("demo_new_1",O_RDWR | O_CREAT | O_APPEND,S_IRWXU);
+	char tmp1[]="This is write demo 1";
+	bytes_written = write(open_fd1,tmp1,sizeof(tmp1)-1);
+	printVal(0xE8,bytes_written);
+	printVal(0xE8,open_fd1);	
+	lseek(open_fd1,0,SEEK_SET);
+	read(open_fd1,read_buff1,sizeof(read_buff1));
+	display(read_buff1);
+
+	char read_buff2[100];
+	int open_fd2=open("demo_new_1",O_RDONLY);
+	read(open_fd2,read_buff2,sizeof(read_buff2));
+	display(read_buff2);
+	close(open_fd);
+	close(open_fd1);
+	close(open_fd2);
+
 
 	
 

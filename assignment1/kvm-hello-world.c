@@ -340,6 +340,7 @@ static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 	static int ret_fd=0;
 	static int param_num =2;
 	char* filename;
+
 	
 	static int open_flags;
 	static int open_mode;
@@ -362,7 +363,16 @@ static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 		// }
 
 		// int fd = open(filename,O_RDWR | O_CREAT,00700);
-		int fd = open(filename,open_flags,open_mode);
+		int fd;
+		if(open_mode > 0)
+		{
+		 fd= open(filename,open_flags,open_mode);
+		}
+		 else
+		 {
+			fd = open(filename,open_flags);
+		 }
+		 
 		
 		if(fd<0){
 			perror("KVM_IO");
