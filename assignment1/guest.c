@@ -5,6 +5,10 @@
        #include <sys/stat.h>
        #include <fcntl.h>*/
 
+	
+#define WRITE_PORT1 0xE9
+#define WRITE_PORT2 0xE8
+
 #define HC_status 0x8000
 #define HC_open  (HC_status | 0)
 #define HC_read  (HC_status | 1)
@@ -192,31 +196,18 @@
 static void outb(uint16_t port, uint8_t value) {
 	asm("outb %0,%1" : /* empty */ : "a" (value), "Nd" (port) : "memory");
 }
-/*
-static void str_cpy(uint16_t port,uint32_t addr) {
- 
-  	asm("mov dx, %0":	:"r" (port) : "rdx");
- 	asm("mov eax, %0":	:"r" (addr) : "rax");
-	asm("out dx, eax":	:	:"memory");
 
-
-}*/
 
 
 static inline void printVal(uint16_t port, uint32_t value) {
   asm("out %0,%1" : /* empty */ : "a" (value), "Nd" (port) : "memory");
- // asm("outl %0,%1" : /* empty */ : "a" (value), "Nd" (port) : "memory");
 }
 
 
 
 static void display(const char *str){
 	
-//	*(long *) 0x500 = addr;
-	//uint32_t addr_temp =
-	//uint32_t addr_temp =(uin)
-    //uint32_t addrtemp = 
-//	str_cpy(0xE5,*addr);
+
 uint32_t  addr = (uintptr_t) str;
 	printVal(0xE5,addr);
 }
@@ -300,8 +291,6 @@ static inline int open(const char *pathname, uint32_t flags, ...){
 	va_list arg;
 	va_start(arg, flags); 
 	uint32_t mode = va_arg(arg,int);
-	display("mode value");
-	printVal(0xE8,mode);
 	uint32_t  addr = (uintptr_t) pathname;
 	uint32_t check_mode_value =check_mode(mode); 
 	printVal(HC_open,check_mode_value);
@@ -321,9 +310,6 @@ static inline int close(uint32_t fd){
 
 }
 static inline int read(int fd, void *buf, size_t count){
-	//uint32_t *addr = (uint32_t *) str;
-	//char* ret;
-		//uint32_t *addr =  &fd;
 		char * char_buff =(char * )buf;
 		printVal(HC_read,count);
 	printVal(HC_read,fd);
@@ -331,14 +317,13 @@ static inline int read(int fd, void *buf, size_t count){
 	uint32_t bytes_read= inb(HC_read);
 	for(uint32_t i =0;i<bytes_read;i++){
 		char_buff[i] = inb(HC_read);
-		//display(buff);
+	
 	}
 	
 	return bytes_read;
 }
 static inline int write(int fd, const void *buf, size_t count){
-	//uint32_t *addr = (uint32_t *) str;
-	//char* ret;
+
 	int ret;
 		uint32_t  addr = (uintptr_t) buf;
 		printVal(HC_write,count);
@@ -348,8 +333,6 @@ static inline int write(int fd, const void *buf, size_t count){
 	ret = inb(HC_write);
 	return ret;
 
-	//*buff = inb(HC_write);
-	//return buff;
 }
 
 static inline int lseek(int fd, int offset, int whence){
@@ -362,8 +345,6 @@ static inline int lseek(int fd, int offset, int whence){
 	ret = inb(HC_seek);
 	return ret;
 
-	//*buff = inb(HC_write);
-	//return buff;
 }
 
 
@@ -372,8 +353,10 @@ __attribute__((noreturn))
 __attribute__((section(".start")))
 _start(void) {
 	const char *p;
-	//uint32_t status;
-	//char * bytes_written=0;
+	int bytes_written;
+	int open_fd,open_fd1,open_fd2;
+	int bytes_read;
+	char read_buff[100];
 
 /**
  * Port 0xE9 is often used by some emulators to directly send text to the hosts console.
@@ -385,44 +368,70 @@ _start(void) {
  * 
  * */
 	for (p = "Hello, world!\n"; *p; ++p)
-		outb(0xE9, *p);
+		outb(WRITE_PORT1, *p);
+	display("Number of exits before diplay : ");
 	uint32_t numExits = getNumExits();
-	printVal(0xE8,numExits);
+	printVal(WRITE_PORT2,numExits);
 
-	display("HI VM from guest");
+	display("\n HI VM  from guest\n");
 	numExits = getNumExits();
-	printVal(0xE8,numExits);
-	uint32_t open_fd = open("demo_new",O_RDWR | O_CREAT | O_APPEND,S_IRWXU);
-	printVal(0xE8,open_fd);
+	display("Number of exits after diplay : ");
+	printVal(WRITE_PORT2,numExits);
+	open_fd = open("demo_new",O_RDWR | O_CREAT | O_APPEND,S_IRWXU);
 	
+	display("\nOpened file demo_new with fd : ");
+	printVal(WRITE_PORT2,open_fd);
+	char tmp[]="This is write demo ";
+	 bytes_written= write(open_fd,tmp,sizeof(tmp)-1);
+	display("\nWrite ");
+	printVal(WRITE_PORT2,bytes_written);
+	display(" bytes in demo_new\n");
 
-	char tmp[]="This is write demo";
-	int bytes_written = write(open_fd,tmp,sizeof(tmp)-1);
-	printVal(0xE8,bytes_written);
-	char read_buff[100];
-	lseek(open_fd,0,SEEK_SET);
-
+	lseek(open_fd,0,SEEK_SET);	
+	bytes_read=read(open_fd,read_buff,sizeof(read_buff));
 	
-	read(open_fd,read_buff,sizeof(read_buff));
+	display("\nRead ");
+	printVal(WRITE_PORT2,bytes_read);
+	display(" bytes from demo_new\n");
 	display(read_buff);
 	// close(open_fd);
 	char read_buff1[100];
-	int open_fd1=open("demo_new_1",O_RDWR | O_CREAT | O_APPEND,S_IRWXU);
+	open_fd1=open("demo_new_1",O_RDWR | O_CREAT | O_APPEND,S_IRWXU);
+	display("\nOpened file demo_new_1 with fd : ");
+	printVal(WRITE_PORT2,open_fd1);
 	char tmp1[]="This is write demo 1";
 	bytes_written = write(open_fd1,tmp1,sizeof(tmp1)-1);
-	printVal(0xE8,bytes_written);
-	printVal(0xE8,open_fd1);	
+	display("\nWrite ");
+	printVal(WRITE_PORT2,bytes_written);
+	display(" bytes in demo_new_1\n");
 	lseek(open_fd1,0,SEEK_SET);
-	read(open_fd1,read_buff1,sizeof(read_buff1));
+	bytes_read=read(open_fd1,read_buff1,sizeof(read_buff1));
+	
+			display("\nRead ");
+	printVal(WRITE_PORT2,bytes_read);
+	display(" bytes from demo_new_1\n");
 	display(read_buff1);
 
 	char read_buff2[100];
-	int open_fd2=open("demo_new_1",O_RDONLY);
-	read(open_fd2,read_buff2,sizeof(read_buff2));
+	open_fd2=open("demo_new_1",O_RDONLY);
+	display("\nOpened file demo_new_1 without giving mode with fd : ");
+	printVal(WRITE_PORT2,open_fd2);
+	bytes_read=read(open_fd2,read_buff2,sizeof(read_buff2));
+	
+	display("\nRead ");
+	printVal(WRITE_PORT2,bytes_read);
+	display(" bytes from demo_new\n");
 	display(read_buff2);
+	
 	close(open_fd);
 	close(open_fd1);
 	close(open_fd2);
+	display("\n Closed ");
+	printVal(WRITE_PORT2,open_fd);
+	display(" , ");
+	printVal(WRITE_PORT2,open_fd1);
+	display(" , ");
+	printVal(WRITE_PORT2,open_fd2);
 
 
 	

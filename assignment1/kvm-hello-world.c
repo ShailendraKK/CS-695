@@ -419,13 +419,9 @@ static void hyper_read(struct vcpu *vcpu)
 		static char * data;
 		static int flag=0;
 	uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
-	//size_t count=10;
-	//uint32_t offset = *(uint32_t*)((uint8_t*)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
-/*	char *p = (char *)vcpu->kvm_run;
-	char *offset =p + vcpu->kvm_run->io.data_offset;
-	*/
+
 	if(vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT){
-		//int fd = *offset;
+		
 		flag=1;
 		i=0;
 		switch (param_num)
@@ -433,8 +429,7 @@ static void hyper_read(struct vcpu *vcpu)
 		case fd:
 					read_fd = *offset;
 					data = (char *) malloc(read_count * sizeof(char));
-					//int fd_tmp = open("demo_new",O_RDONLY,00700);
-					// lseek(read_fd,0,SEEK_SET);
+
 					bytes_read=read(read_fd,data,read_count);
 					param_num = 1;
 					if(bytes_read < 0){
@@ -452,19 +447,7 @@ static void hyper_read(struct vcpu *vcpu)
 		default:
 			break;
 		}
-		/*char *filename = "demo1234";
-		int fd = open(filename,O_RDONLY,00700);
-		bytes_read=read(fd,buff,10);
 
-		if(bytes_read<0){
-			perror("KVM_IO");
-			exit(1);
-		}
-		else{
-			
-			
-			return bytes_read;
-		}*/
 
 	}
 	else{
@@ -703,35 +686,17 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz)
 			}
 				if (vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT
 			    && vcpu->kvm_run->io.port == 0xE8) {
-				printf("\n Output start from guest \n");
 				uint32_t *offset = (uint32_t*)((uint8_t*)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
 
 				printf("%d",*offset);
 
-				printf("\n Output end from guest \n");
 				continue;
 			}
 			if (vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT
 			    && vcpu->kvm_run->io.port == 0xE5) {
-				printf("\n String Output start from guest \n");
 					uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
-    			//	int offset1 = *offset;
-					//char *str = (char*) *offset;
 					printf("%s",(&vm->mem[*offset]));
-					//char* tmp;
-					//memcpy(&tmp, &vm->mem[0x500], sz);
-					///printf("%s",vm->mem[0x500]);
-					/*char *start = (char*) vcpu->kvm_run;
-					for(int i=0;i< (12*1024);i++){
-						printf("%c",start[i]);
-					}*/
-
-
-					
-				
-					
-
-				printf("\n String Output end from guest \n");
+			
 				continue;
 			}
 			if (vcpu->kvm_run->io.direction == KVM_EXIT_IO_IN
