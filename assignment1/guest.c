@@ -194,13 +194,13 @@
  * */
 
 static void outb(uint16_t port, uint8_t value) {
-	asm("outb %0,%1" : /* empty */ : "a" (value), "Nd" (port) : "memory");
+	asm volatile("outb %0,%1" : /* empty */ : "a" (value), "Nd" (port) : "memory");
 }
 
 
 
 static inline void printVal(uint16_t port, uint32_t value) {
-  asm("out %0,%1" : /* empty */ : "a" (value), "Nd" (port) : "memory");
+  asm volatile("out %0,%1" : /* empty */ : "a" (value), "Nd" (port) : "memory");
 }
 
 
@@ -214,7 +214,7 @@ uint32_t  addr = (uintptr_t) str;
 
 static inline uint32_t inb(uint16_t port) {
   uint32_t ret;
-  asm("in %1, %0" : "=a"(ret) : "Nd"(port) : "memory" );
+  asm volatile("in %1, %0" : "=a"(ret) : "Nd"(port) : "memory" );
   return ret;
 }
 
@@ -309,16 +309,40 @@ static inline int close(uint32_t fd){
 	return ret;
 
 }
+/*
+simple reading byte by byte
+
 static inline int read(int fd, void *buf, size_t count){
 		char * char_buff =(char * )buf;
 		printVal(HC_read,count);
 	printVal(HC_read,fd);
 	
 	uint32_t bytes_read= inb(HC_read);
+	 char char_buff_temp[bytes_read];
+
 	for(uint32_t i =0;i<bytes_read;i++){
 		char_buff[i] = inb(HC_read);
-	
 	}
+	char_buff = char_buff_temp;
+	return bytes_read;
+}*/
+
+static inline int read(int fd, void *buf, size_t count){
+		//char * char_buff =(char * )buf;
+		printVal(HC_read,count);
+		uint32_t  addr = (uintptr_t) buf;
+		printVal(HC_read,addr);
+	printVal(HC_read,fd);
+	
+
+	uint32_t bytes_read= inb(HC_read);
+	// char char_buff_temp[bytes_read];
+	 
+//	uint32_t * addr = (uint32_t*)(uintptr_t)inb(HC_read);
+	
+
+	//char_buff = (uint8_t)(uintptr_t)inb(HC_read);
+	//char_buff[0]=char_buff[0];
 	
 	return bytes_read;
 }
@@ -354,9 +378,9 @@ __attribute__((section(".start")))
 _start(void) {
 	const char *p;
 	int bytes_written;
-	int open_fd,open_fd1,open_fd2;
+	int open_fd,open_fd1,open_fd2,open_fd3;
 	int bytes_read;
-	char read_buff[100];
+	char read_buff[500];
 
 /**
  * Port 0xE9 is often used by some emulators to directly send text to the hosts console.
@@ -378,60 +402,112 @@ _start(void) {
 	display("Number of exits after diplay : ");
 	printVal(WRITE_PORT2,numExits);
 	open_fd = open("demo_new",O_RDWR | O_CREAT | O_APPEND,S_IRWXU);
-	
-	display("\nOpened file demo_new with fd : ");
+	if(open_fd >=0){
+	display("\n\nOpened file demo_new with fd : ");
 	printVal(WRITE_PORT2,open_fd);
+	}
+			else{
+display("\nError while opening file demo_new");
+		}
+	
 	char tmp[]="This is write demo ";
 	 bytes_written= write(open_fd,tmp,sizeof(tmp)-1);
+	 if(bytes_written >=0){
 	display("\nWrite ");
 	printVal(WRITE_PORT2,bytes_written);
 	display(" bytes in demo_new\n");
+	 }
+	 		else{
+display("\nError while writing to file demo_new");
+		}
 
 	lseek(open_fd,0,SEEK_SET);	
 	bytes_read=read(open_fd,read_buff,sizeof(read_buff));
-	
+	if(bytes_read >=0)
+	{
 	display("\nRead ");
 	printVal(WRITE_PORT2,bytes_read);
 	display(" bytes from demo_new\n");
 	display(read_buff);
+	}
+			else{
+display("\nError while reading from  file demo_new_1");
+		}
 	// close(open_fd);
-	char read_buff1[100];
+//	char read_buff1[100];
 	open_fd1=open("demo_new_1",O_RDWR | O_CREAT | O_APPEND,S_IRWXU);
-	display("\nOpened file demo_new_1 with fd : ");
+	if(open_fd1 >=0){
+	display("\n\nOpened file demo_new_1 with fd : ");
 	printVal(WRITE_PORT2,open_fd1);
+	}
+			else{
+display("\nError while opening file demo_new_1");
+		}
 	char tmp1[]="This is write demo 1";
 	bytes_written = write(open_fd1,tmp1,sizeof(tmp1)-1);
+	if(bytes_written >= 0){
 	display("\nWrite ");
 	printVal(WRITE_PORT2,bytes_written);
 	display(" bytes in demo_new_1\n");
+	}
+			else{
+display("\nError while writing to file demo_new_1");
+		}
 	lseek(open_fd1,0,SEEK_SET);
-	bytes_read=read(open_fd1,read_buff1,sizeof(read_buff1));
-	
+	bytes_read=read(open_fd1,read_buff,sizeof(read_buff));
+	if(bytes_read >=0){
 			display("\nRead ");
 	printVal(WRITE_PORT2,bytes_read);
 	display(" bytes from demo_new_1\n");
-	display(read_buff1);
+	display(read_buff);
+	}
+			else{
+display("\nError while reading from file demo_new_1");
+		}
 
-	char read_buff2[100];
 	open_fd2=open("demo_new_1",O_RDONLY);
-	display("\nOpened file demo_new_1 without giving mode with fd : ");
+	if(open_fd2>= 0)
+	{
+	display("\n\nOpened file demo_new_1 without giving mode with fd : ");
 	printVal(WRITE_PORT2,open_fd2);
-	bytes_read=read(open_fd2,read_buff2,sizeof(read_buff2));
-	
+	}
+			else{
+display("\nError while opening file demo_new_1");
+		}
+	bytes_read=read(open_fd2,read_buff,sizeof(read_buff));
+	if(bytes_read >=0)
+	{
 	display("\nRead ");
 	printVal(WRITE_PORT2,bytes_read);
 	display(" bytes from demo_new\n");
-	display(read_buff2);
+	display(read_buff);
+	}
+			else{
+display("\nError while opening file demo_new_1");
+		}
 	
+
+
 	close(open_fd);
 	close(open_fd1);
 	close(open_fd2);
+
 	display("\n Closed ");
 	printVal(WRITE_PORT2,open_fd);
 	display(" , ");
 	printVal(WRITE_PORT2,open_fd1);
 	display(" , ");
 	printVal(WRITE_PORT2,open_fd2);
+
+		open_fd3=open("demo_new_2",O_RDWR);
+		if(open_fd3 > 0){
+	display("\n\nOpened file demo_new_2 without giving mode with fd : ");
+	printVal(WRITE_PORT2,open_fd3);
+		}
+		else{
+display("\nError while opening file demo_new_2");
+		}
+	
 
 
 	

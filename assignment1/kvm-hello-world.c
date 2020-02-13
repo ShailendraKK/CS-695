@@ -340,21 +340,18 @@ static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 	static int ret_fd=0;
 	static int param_num =2;
 	char* filename;
-
 	
 	static int open_flags;
 	static int open_mode;
 	// void init_fd();
 	
 	uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
-	//char *loc = (char*)vcpu->kvm_run + *offset;
+
 	if(vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT){
-				//char filename[] =&();
+				
 		switch (param_num)
 		{
 		case pathname:
-			/* code */
-					printf("\n filename : %s\n",&vm->mem[*offset]);
 		filename = &vm->mem[*offset];
 		// int min_fd = find_min_fd();
 		// if(min_fd==-1){
@@ -363,26 +360,24 @@ static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 		// }
 
 		// int fd = open(filename,O_RDWR | O_CREAT,00700);
-		int fd;
+		
 		if(open_mode > 0)
 		{
-		 fd= open(filename,open_flags,open_mode);
+		 ret_fd= open(filename,open_flags,open_mode);
 		}
 		 else
 		 {
-			fd = open(filename,open_flags);
+			ret_fd = open(filename,open_flags);
 		 }
 		 
 		
 		if(fd<0){
 			perror("KVM_IO");
-			exit(1);
+			
+			
 		}
-		else{
-			// fd_list[min_fd]=fd;
-			// fd_use[min_fd]=1;
-			ret_fd=fd;
-		}
+			
+		
 		param_num =2;
 			break;
 		
@@ -404,11 +399,14 @@ static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 	}
 	else{
 		
-		*offset = ret_fd;
+			*offset = ret_fd;
+			
+
+	
 	}
 	
 }
-
+/* simple read sending data one by one
 static void hyper_read(struct vcpu *vcpu)
 {
 			static int read_fd;
@@ -462,6 +460,59 @@ static void hyper_read(struct vcpu *vcpu)
 
 	}
 }
+*/
+
+static void hyper_read(struct vm *vm,struct vcpu *vcpu)
+{
+	
+			static int read_fd;
+		static size_t read_count;
+		static int param_num=2;
+		static int bytes_read;
+		static char * data;
+	uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
+
+	if(vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT){
+		
+		//flag=1;
+		//i=0;
+		switch (param_num)
+		{
+		case fd:
+					read_fd = *offset;
+					memset(data,0,read_count);
+					bytes_read=read(read_fd,data,read_count);
+					param_num = 2;
+					if(bytes_read < 0){
+					perror("KVM_IO");
+						
+					}
+			break;
+		
+		case buf:
+				data = &vm->mem[*offset];
+				param_num --;
+		break;
+		
+
+		case (count):
+			read_count = *offset;
+			param_num --;
+		break;
+		
+		default:
+			break;
+		}
+
+	}
+	else{
+		
+		*offset = bytes_read;
+		
+
+	}
+}
+
 static void hyper_write(struct vm *vm,struct vcpu *vcpu)
 {
 		static int write_fd;
@@ -483,7 +534,6 @@ uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data
 					param_num = 2;
 		if(bytes_written < 0){
 			perror("KVM_IO");
-			exit(1);
 		}
 		break;
 		case buf:
@@ -533,7 +583,7 @@ uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data
 					param_num = 2;
 		if(ret < 0){
 			perror("KVM_IO");
-			exit(1);
+			
 		}
 		break;
 		case buf:
@@ -710,7 +760,7 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz)
 					case HC_open: hyper_open(vm,vcpu);
 									continue;
 					case HC_read: 
-									hyper_read(vcpu);
+									hyper_read(vm,vcpu);
 									continue;
 					case HC_write: 	
 									hyper_write(vm,vcpu);
