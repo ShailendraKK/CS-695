@@ -296,7 +296,7 @@ void init_fd(){
 		first_time_init =1;
 	
    for(int i=0;i<MAX_FD;i++){
-	   fd_list[i]=-1;
+	   fd_list[i]= -1;
 
    }
 }
@@ -305,7 +305,7 @@ void init_fd(){
 }
 int find_min_fd(){
 	for(int i=0;i<MAX_FD;i++){
-		if(fd_list[i]==-1){
+		if(fd_list[i]== -1){
 			return i;
 		}
 	}
@@ -315,11 +315,21 @@ int find_min_fd(){
 void clear_fd(int fd){
 	for(int i=0;i<MAX_FD;i++){
 		if(fd_list[i]==fd){
-			fd_list[i]=-1;
+			fd_list[i]= -1;
 			break;
 		}
 	}
 }
+int find_present(int fd){
+		for(int i=0;i<MAX_FD;i++){
+		if(fd_list[i]==fd){
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
 static void hyper_close(struct vcpu *vcpu)
 {
 
@@ -330,8 +340,14 @@ static void hyper_close(struct vcpu *vcpu)
 	if(vcpu->kvm_run->io.direction == KVM_EXIT_IO_OUT){
 		
 		fd = *offset;
+		if(find_present(fd)==1){
 		ret_status =close(fd);
 		clear_fd(ret_status);
+		}
+		else{
+						printf("\nKVM_IO : Not owner of the fd\n");
+						ret_status = -1;
+				}
 
 	}
 	else{
@@ -363,7 +379,7 @@ static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 	
 		int min_fd = find_min_fd();
 		if(min_fd== -404){
-			perror("KVM_IO: FD limit reached");
+			printf("KVM_IO: FD limit reached");
 			
 		}
 		
@@ -491,12 +507,19 @@ static void hyper_read(struct vm *vm,struct vcpu *vcpu)
 		case fd:
 					read_fd = *offset;
 					memset(data,0,read_count);
+					if(find_present(read_fd) == 1){
 					bytes_read=read(read_fd,data,read_count);
-					param_num = 2;
 					if(bytes_read < 0){
 					perror("KVM_IO");
 						
 					}
+					}
+					else{
+						printf("\nKVM_IO : Not owner of the fd\n");
+						bytes_read = -1;
+					}
+					param_num = 2;
+					
 			break;
 		
 		case buf:
@@ -539,12 +562,19 @@ uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data
 		
 		case fd:
 			write_fd = *offset;
-			
+					if(find_present(write_fd) == 1){
 					bytes_written=write(write_fd,data,write_count);
+						if(bytes_written < 0){
+						perror("KVM_IO");
+						}
+					}
+					else{
+						printf("\nKVM_IO : Not owner of the fd\n");
+						bytes_written = -1;
+					}
+
 					param_num = 2;
-		if(bytes_written < 0){
-			perror("KVM_IO");
-		}
+	
 		break;
 		case buf:
 					data = &vm->mem[*offset];
@@ -588,13 +618,19 @@ uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data
 		
 		case fd:
 			seek_fd = *offset;
-			
+					if(find_present(seek_fd)==1){
 					ret=lseek(seek_fd,seek_offset,whence);
-					param_num = 2;
-		if(ret < 0){
+					if(ret < 0){
 			perror("KVM_IO");
 			
 		}
+					}
+					else{
+						printf("\nKVM_IO : Not owner of the fd\n");
+						ret = -1;
+					}
+					param_num = 2;
+		
 		break;
 		case buf:
 					seek_offset = *offset;

@@ -555,6 +555,34 @@ display("\nError while reading from  file demo_new_2");
 		}
 		close(open_fd3);
 
+
+	display("\n\n Now we will try to operate on random fd that is not created by our guest \n\n");
+
+		
+
+	 bytes_written= write(15,tmp4,sizeof(tmp4)-1);
+	 if(bytes_written >=0){
+	display("\nWrite ");
+	printVal(WRITE_PORT2,bytes_written);
+	display(" bytes in demo_new 2\n");
+	 }
+	 		else{
+display("\nError while writing to file demo_new 2 \n");
+		}
+			lseek(16,0,SEEK_SET);
+			bytes_read=read(17,read_buff,sizeof(read_buff));
+	if(bytes_read >=0)
+	{
+	display("\nRead ");
+	printVal(WRITE_PORT2,bytes_read);
+	display(" bytes from demo_new 2\n");
+	display(read_buff);
+	}
+			else{
+display("\nError while reading from  file demo_new_2 \n");
+		}
+		close(18);
+
 	
 
 
