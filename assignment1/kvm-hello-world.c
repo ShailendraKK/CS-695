@@ -285,9 +285,8 @@ struct vcpu {
 	int fd;
 	struct kvm_run *kvm_run;
 };
-/*
+
 static int fd_list[100];
-static int fd_use[100];
 
 
 void init_fd(){
@@ -295,12 +294,9 @@ void init_fd(){
 	if(first_time_init ==0)
 	{
 		first_time_init =1;
-	for(int i=0;i<=2;i++){
-		fd_list[i]=i;
-		fd_use[i]=1;
-	}
-   for(int i=3;i<MAX_FD;i++){
-	   fd_use[i]=0;
+	
+   for(int i=0;i<MAX_FD;i++){
+	   fd_list[i]=-1;
 
    }
 }
@@ -308,14 +304,22 @@ void init_fd(){
 
 }
 int find_min_fd(){
-	for(int i=3;i<MAX_FD;i++){
-		if(fd_use[i]==0){
+	for(int i=0;i<MAX_FD;i++){
+		if(fd_list[i]==-1){
 			return i;
 		}
 	}
-	return -1;
+	return -404;
 }
-*/
+
+void clear_fd(int fd){
+	for(int i=0;i<MAX_FD;i++){
+		if(fd_list[i]==fd){
+			fd_list[i]=-1;
+			break;
+		}
+	}
+}
 static void hyper_close(struct vcpu *vcpu)
 {
 
@@ -327,6 +331,7 @@ static void hyper_close(struct vcpu *vcpu)
 		
 		fd = *offset;
 		ret_status =close(fd);
+		clear_fd(ret_status);
 
 	}
 	else{
@@ -343,7 +348,8 @@ static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 	
 	static int open_flags;
 	static int open_mode;
-	// void init_fd();
+	
+
 	
 	uint32_t *offset = (uint32_t*)((uintptr_t)vcpu->kvm_run + vcpu->kvm_run->io.data_offset);
 
@@ -353,23 +359,26 @@ static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 		{
 		case pathname:
 		filename = &vm->mem[*offset];
-		// int min_fd = find_min_fd();
-		// if(min_fd==-1){
-		// 	perror("KVM_IO");
-		// 	exit(1);
-		// }
-
-		// int fd = open(filename,O_RDWR | O_CREAT,00700);
+			init_fd();
+	
+		int min_fd = find_min_fd();
+		if(min_fd== -404){
+			perror("KVM_IO: FD limit reached");
+			
+		}
 		
+		else
+		{
 		if(open_mode > 0)
 		{
 		 ret_fd= open(filename,open_flags,open_mode);
+		 
 		}
 		 else
 		 {
 			ret_fd = open(filename,open_flags);
 		 }
-		 
+		 fd_list[min_fd]=ret_fd;
 		
 		if(fd<0){
 			perror("KVM_IO");
@@ -377,6 +386,7 @@ static void hyper_open(struct vm *vm,struct vcpu *vcpu)
 			
 		}
 			
+		}
 		
 		param_num =2;
 			break;

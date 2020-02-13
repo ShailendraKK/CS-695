@@ -280,7 +280,7 @@ uint32_t check_mode(uint32_t mode){
 		break;
 
 	default:
-		ret =0;
+		ret =-1;
 		break;
 	}
 	return ret;
@@ -380,7 +380,7 @@ _start(void) {
 	int bytes_written;
 	int open_fd,open_fd1,open_fd2,open_fd3;
 	int bytes_read;
-	char read_buff[500];
+	char read_buff[1000];
 
 /**
  * Port 0xE9 is often used by some emulators to directly send text to the hosts console.
@@ -465,32 +465,52 @@ display("\nError while writing to file demo_new_1");
 display("\nError while reading from file demo_new_1");
 		}
 
-	open_fd2=open("demo_new_1",O_RDONLY);
-	if(open_fd2>= 0)
-	{
-	display("\n\nOpened file demo_new_1 without giving mode with fd : ");
+
+
+
+
+
+
+		open_fd2=open("demo_new_1",O_RDWR | O_TRUNC);
+		if(open_fd2 > 0){
+	display("\n\nOpened file demo_new_1 without giving mode with fd and trucating previous data : ");
 	printVal(WRITE_PORT2,open_fd2);
-	}
-			else{
+		}
+		else{
 display("\nError while opening file demo_new_1");
 		}
-	bytes_read=read(open_fd2,read_buff,sizeof(read_buff));
+		
+	
+	
+char tmp3[] = "This is write demo new";
+	 bytes_written= write(open_fd2,tmp3,sizeof(tmp3)-1);
+	 if(bytes_written >=0){
+	display("\nWrite ");
+	printVal(WRITE_PORT2,bytes_written);
+	display(" bytes in demo_new_1\n");
+	 }
+	 		else{
+display("\nError while writing to file demo_new");
+		}
+			lseek(open_fd2,0,SEEK_SET);
+			bytes_read=read(open_fd2,read_buff,sizeof(read_buff));
 	if(bytes_read >=0)
 	{
 	display("\nRead ");
 	printVal(WRITE_PORT2,bytes_read);
-	display(" bytes from demo_new\n");
+	display(" bytes from demo_new_1\n");
 	display(read_buff);
 	}
 			else{
-display("\nError while opening file demo_new_1");
+display("\nError while reading from  file demo_new_1");
 		}
 	
 
 
-	close(open_fd);
+
+		close(open_fd);
 	close(open_fd1);
-	close(open_fd2);
+		close(open_fd2);
 
 	display("\n Closed ");
 	printVal(WRITE_PORT2,open_fd);
@@ -499,16 +519,41 @@ display("\nError while opening file demo_new_1");
 	display(" , ");
 	printVal(WRITE_PORT2,open_fd2);
 
-		open_fd3=open("demo_new_2",O_RDWR);
+
+// No append
+
+		open_fd3=open("demo_new_2",O_RDWR | O_CREAT,S_IRWXU);
 		if(open_fd3 > 0){
-	display("\n\nOpened file demo_new_2 without giving mode with fd : ");
+	display("\n\nOpened file demo_new_2 with no append: ");
 	printVal(WRITE_PORT2,open_fd3);
 		}
 		else{
 display("\nError while opening file demo_new_2");
 		}
-	
 
+char tmp4[] = "This is write demo 2";
+	 bytes_written= write(open_fd3,tmp4,sizeof(tmp4)-1);
+	 if(bytes_written >=0){
+	display("\nWrite ");
+	printVal(WRITE_PORT2,bytes_written);
+	display(" bytes in demo_new 2\n");
+	 }
+	 		else{
+display("\nError while writing to file demo_new 2");
+		}
+			lseek(open_fd3,0,SEEK_SET);
+			bytes_read=read(open_fd3,read_buff,sizeof(read_buff));
+	if(bytes_read >=0)
+	{
+	display("\nRead ");
+	printVal(WRITE_PORT2,bytes_read);
+	display(" bytes from demo_new 2\n");
+	display(read_buff);
+	}
+			else{
+display("\nError while reading from  file demo_new_2");
+		}
+		close(open_fd3);
 
 	
 
