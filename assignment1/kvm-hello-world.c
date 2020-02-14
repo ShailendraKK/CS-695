@@ -107,7 +107,7 @@ void vm_init(struct vm *vm, size_t mem_size)
 	 * 2MB
 	 * */
 	
-	//printf("the size of the guest memory (that the guest perceives as its physical memory) : %ld bytes \n",mem_size);
+//	printf("the size of the guest memory (that the guest perceives as its physical memory) : %ld bytes \n",mem_size);
 	int api_ver;
 	struct kvm_userspace_memory_region memreg;
 
@@ -213,12 +213,7 @@ because of a quirk in the virtualization implementation
 	vm->mem = mmap(NULL, mem_size, PROT_READ | PROT_WRITE,
 		   MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
 
-	/**
-	 * 
-	 * 	Q3.2 Range of guest code in host virtual address space
-	 * */
-	//printf("\n Range of guest code in host virtual address space: %p to %p \n",vm->mem,vm->mem + mem_size);
-
+	
 	if (vm->mem == MAP_FAILED) {
 		perror("mmap mem");
 		exit(1);
@@ -693,7 +688,7 @@ void vcpu_init(struct vm *vm, struct vcpu *vcpu)
  * Q2.2  What is the size of VCPU?
  * Ans: 12KB
  *  */
-	//printf("Size of VCPU Mmap area : %d bytes \n",vcpu_mmap_size);
+//	printf("Size of VCPU Mmap area : %d bytes \n",vcpu_mmap_size);
 
 /***
  * 
@@ -721,7 +716,7 @@ void vcpu_init(struct vm *vm, struct vcpu *vcpu)
  * Q2.3  where is VCPU mmap located in the virutal address space of the hypervisor ?
  * 
  * */
-//	printf("Location of VCPU mmap area in virtual address space of hypervisor : %p\n",vcpu->kvm_run);		
+  //	printf("Location of VCPU mmap area in virtual address space of hypervisor : %p\n",vcpu->kvm_run);		
 }
 
 int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz)
@@ -846,8 +841,9 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz)
 	 * Q8  Can you figure out what's happening with the number 42?
 	 * Where is it written in the guest and where is it read out in the hypervisor? 
 	 * Ans: Number 42 is read in hypervisor here
-	 * It is generally used to check whether the exit is done manually by us since we are storing value 42 at location 0x400 and reg a
-	 * and checking here that the value is present at both the location. It is used to exit from the loop and hlt the guest.
+	 * It is generally used to check whether the exit is done manually by us since we are storing value 42 at location 0x400 and in register a
+	 * and checking here whether the value is present here correctly. It is used to check whether guest is hlt normally or not.
+	 * If value at the provided location is 42 then guest is hlt normally otherwise the guest is being terminated due to some error. 
 	 * */
 	if (regs.rax != 42) {
 		printf("Wrong result: {E,R,}AX is %lld\n", regs.rax);
@@ -1027,10 +1023,7 @@ static void setup_64bit_code_segment(struct kvm_sregs *sregs)
 	};
 
 	sregs->cs = seg;
-	/**
-	 * Q3.2 Range of guest code
-	 * */
-//	printf("\n Range of guest code in guest phyical address: 0x%lld to 0x%x \n",seg.base,seg.limit);
+
 	seg.type = 3; /* Data: read/write, accessed */
 	seg.selector = 2 << 3;
 	sregs->ds = sregs->es = sregs->fs = sregs->gs = sregs->ss = seg;
@@ -1042,6 +1035,10 @@ static void setup_long_mode(struct vm *vm, struct kvm_sregs *sregs)
 	 * outermost page table, called the PML4 (page map level 4)
 	 * size 4KB
 	 */
+	/*
+	 * Q3.1 Guest page table setup --  This is 2M paging, with the PT (page table) removed, 
+	 * the PDT entries point to physical address.
+	 * */
 	uint64_t pml4_addr = 0x2000;
 	uint64_t *pml4 = (void *)(vm->mem + pml4_addr);
 
@@ -1084,19 +1081,17 @@ static void setup_long_mode(struct vm *vm, struct kvm_sregs *sregs)
 		This is just an example, we should NOT set user-accessible pages in hypervisor,
 		 user-accessible pages should be handled by our kernel.
 	 */ 
-	/**
-	 * Q3.1 Guest page table setup --  This is 2M paging, with the PT (page table) removed, 
-	 * the PDT entries point to physical address.
-	 * */
+	
+
 	/**
 	 * Q4 Understand the structure of the quest page table, 
 	 * and how the guest virtual address space is mapped to its physical address space using its page table.
 	 * How many levels does the guest page table have in long mode? 
 	 * Ans: 3 levels since PDT directly points to physical address.
 	 *  How many pages does it occupy? 
-	 * Ans: 3 pages
+	 * Ans: 3 pages since each of the page table is of 4 KB and there are 3 levels
 	 * What are the (guest) virutal-to-physical mappings setup in the guest page table?
-	 * Ans: 1 to 1 mapping
+	 * Ans: guest virutal-to-physical mappings are given below
 	 *  What part in VA does it map
 	 * 0 to 2 MB i.e 2MB of VAS
 	 * */
@@ -1104,12 +1099,12 @@ static void setup_long_mode(struct vm *vm, struct kvm_sregs *sregs)
 	pdpt[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | pd_addr;
 	pd[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | PDE64_PS;
 
-	// printf("\n plm4 page table range guest physical address range: 0x%lx to 0x%lx",pml4_addr,pml4_addr + 0x1000);
-	// printf("\n plm4 page table range host vitual address range: %p to %p",pml4,pml4 + 0x1000);
-	// printf("\n pdpt page table range guest physical address range: 0x%lx to 0x%lx",pdpt_addr,pdpt_addr + 0x1000);
-	// printf("\n pdpt page table range host vitual address range: %p to %p",pdpt,pdpt + 0x1000);
-	// printf("\n pd page table range guest physical address range: 0x%lx to 0x%lx",pd_addr,pd_addr + 0x1000);
-	// printf("\n pd page table range host vitual address range: %p to %p",pd,pd + 0x1000);
+	//  printf("\n plm4 page table range guest physical address range: 0x%lx to 0x%lx",pml4_addr,pml4_addr + (0x1000 -1));
+	//  printf("\n plm4 page table range host vitual address range: %p to %p",pml4,pml4 + (0x1000-1));
+	//  printf("\n pdpt page table range guest physical address range: 0x%lx to 0x%lx",pdpt_addr,pdpt_addr + (0x1000-1));
+	//  printf("\n pdpt page table range host vitual address range: %p to %p",pdpt,pdpt + (0x1000-1));
+	//  printf("\n pd page table range guest physical address range: 0x%lx to 0x%lx",pd_addr,pd_addr + (0x1000-1));
+	//  printf("\n pd page table range host vitual address range: %p to %p",pd,pd + (0x1000-1));
 
 
 	/**
@@ -1180,15 +1175,16 @@ int run_long_mode(struct vm *vm, struct vcpu *vcpu)
 	 * user entry
 	 * 
 	 * Q5 At what (guest virtual) address does the guest start execution when it runs? Where is this address configured?
+	 * Ans: address 0 
 	 * */
 	regs.rip = 0;
-	/* Create stack at top of 2 MB page and grow down.   stack address 0x200000s */
+	/* Create stack at top of 2 MB page and grow down.   stack address 0x200000 */
 	/**
-	 * Q3.2 Kernal stack range
+	 * Q3.2 Kernal stack pointer is setup here and Kernal stack range is given below
 	 * */
 	regs.rsp = 2 << 20;
-	//printf("\n Kernal Stack in guest physical address : %lld grows towards 0 \n",regs.rsp);
-	//printf("\n Kernal Stack in host virtual address : %p grows towards %p \n",vm->mem + 0x200000,vm->mem);
+	//  printf("\n Kernal Stack in guest physical address : 0x%llx grows towards 0x0 \n",regs.rsp);
+	//  printf("\n Kernal Stack in host virtual address : %p grows towards %p \n",vm->mem + regs.rsp,vm->mem);
 
 	if (ioctl(vcpu->fd, KVM_SET_REGS, &regs) < 0) {
 		perror("KVM_SET_REGS");
@@ -1196,10 +1192,21 @@ int run_long_mode(struct vm *vm, struct vcpu *vcpu)
 	}
 
 	/**
-	 * Q3.1 guest memory area is formatted to contain the guest code
+	 * Q3.1 guest memory area is formatted to contain the guest code i.e guest code is setup here
 	 * */
-	//printf("\n Range of guest code in Host Virtual address %p to %p \n",vm->mem,vm->mem + 0x20000);
+	
 	memcpy(vm->mem, guest64, guest64_end-guest64);
+	/**
+	 * 
+	 * 	Q3.2 Range of guest code in host virtual address space
+
+	 * */
+	//printf("\n Range of guest code in Host Virtual address space %p to %p \n",vm->mem,vm->mem + (guest64_end -guest64));
+
+	/**
+	 * Q3.2 Range of guest code in guest physical address space
+	 */
+	//	printf("\n Range of guest code in guest phyical address: 0x%llx to 0x%llx \n",sregs.cs.base, sregs.cs.base + (guest64_end-guest64) );
 /*
 	int ptfd = ioctl(vm->fd,KVM_CAP_PPC_HTAB_FD,0);
 	if(ptfd<0){

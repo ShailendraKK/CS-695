@@ -393,7 +393,7 @@ _start(void) {
 	
 	uint32_t numExits = getNumExits();
 	display("Number of exits required to print Hello, world! : ");
-	printVal(WRITE_PORT2,numExits);
+	printVal(WRITE_PORT2,numExits-1);
 	display("\nNumber of exits before diplay : ");
 
 	uint32_t before = getNumExits();
@@ -595,7 +595,7 @@ display("\nError while reading from  file demo_new_2 \n");
 /**
  * Q8  Can you figure out what's happening with the number 42? 
  * Where is it written in the guest and where is it read out in the hypervisor? 
- * Ans : 
+ * Ans : It is written below
  * */
 	*(long *) 0x400 = 42;
 
