@@ -385,22 +385,26 @@ _start(void) {
 /**
  * Port 0xE9 is often used by some emulators to directly send text to the hosts console.
  * */
-/**
- * Q7 What port number is used for this communication?
- * Ans Port 0xE9 // 223
- * 
- * 
- * */
+
+
 	for (p = "Hello, world!\n"; *p; ++p)
 		outb(WRITE_PORT1, *p);
-	display("Number of exits before diplay : ");
+	
+	
 	uint32_t numExits = getNumExits();
+	display("Number of exits required to print Hello, world! : ");
 	printVal(WRITE_PORT2,numExits);
+	display("\nNumber of exits before diplay : ");
 
+	uint32_t before = getNumExits();
+		printVal(WRITE_PORT2,before);
 	display("\n HI VM  from guest\n");
-	numExits = getNumExits();
-	display("Number of exits after diplay : ");
-	printVal(WRITE_PORT2,numExits);
+	uint32_t after = getNumExits();
+		
+	display("\nNumber of exits after diplay : ");
+	printVal(WRITE_PORT2,after);
+	
+
 	open_fd = open("demo_new",O_RDWR | O_CREAT | O_APPEND,S_IRWXU);
 	if(open_fd >=0){
 	display("\n\nOpened file demo_new with fd : ");
@@ -554,8 +558,10 @@ display("\nError while writing to file demo_new 2");
 display("\nError while reading from  file demo_new_2");
 		}
 		close(open_fd3);
+		display("\n Closed ");
+	printVal(WRITE_PORT2,open_fd3);
 
-
+/*
 	display("\n\n Now we will try to operate on random fd that is not created by our guest \n\n");
 
 		
@@ -582,7 +588,7 @@ display("\nError while writing to file demo_new 2 \n");
 display("\nError while reading from  file demo_new_2 \n");
 		}
 		close(18);
-
+*/
 	
 
 
