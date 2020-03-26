@@ -1,0 +1,290 @@
+/*
+void *  get_cpu_node_utilization(void * arg){
+  //int64_t cpu_time=0;
+     int nparams=0;
+     virDomainPtr dom=(virDomainPtr)arg;
+     char* vm_booted_thread=vm_booted;
+    
+     double cpu_util=0,domain_cpu_time_prev=0,domain_cpu_time=0,domain_cpu_util=0;
+
+     //int stats_available;
+     
+       virNodeCPUStatsPtr params,prev_params;
+     
+ if (virNodeGetCPUStats(conn,  VIR_NODE_CPU_STATS_ALL_CPUS, NULL, &nparams, 0) == 0 && nparams != 0)
+      {
+       
+        if ((prev_params = malloc(sizeof(virNodeCPUStats) * nparams)) == NULL)
+        
+    memset(prev_params, 0, sizeof(virNodeCPUStats) * nparams);
+     if ((params = malloc(sizeof(virNodeCPUStats) * nparams)) == NULL)
+        
+    memset(params, 0, sizeof(virNodeCPUStats) * nparams);
+
+    
+      
+        while(1){
+     
+      virNodeGetCPUStats(conn,  VIR_NODE_CPU_STATS_ALL_CPUS, prev_params, &nparams, 0);
+      domain_cpu_time_prev = get_domain_cpu_time(dom);//get_cpu_domain_utilization(dom);
+
+            sleep(3);
+
+
+          
+    
+                virNodeGetCPUStats(conn,  VIR_NODE_CPU_STATS_ALL_CPUS, params, &nparams, 0);
+                domain_cpu_time =   get_domain_cpu_time(dom); //get_cpu_domain_utilization(dom);
+                cpu_util = culculate_cpu_utilization(prev_params,params,nparams);
+                domain_cpu_util = (100 * ((domain_cpu_time-domain_cpu_time_prev)/3));
+                printf("\n %s : CPU Usage host : %lf percent CPU usage guest: %lf\n",vm_booted_thread,cpu_util,domain_cpu_util);
+                if(cpu_util>15 && domain_cpu_util > 5){
+                   //  new_vm =create_new_VM();
+                   if(spawn_vm_index < 5){
+                       if(spawn_new_vm==0) spawn_new_vm=1;
+                   }
+                   else{
+                     printf("Max VM limit reached");
+                   }
+                }
+                 
+               
+            
+      
+
+      
+    }
+   
+     
+}
+ //free(params);
+   //   free(prev_params);
+return 0;//(double)cpu_time/1000000000;
+}
+*/
+/*
+void *culculate_cpu_utilization(){
+  double prev_cpu_time=0,prev_node_time=0,curr_cpu_time=0,curr_node_time=0,vm_time,node_time=0;
+  int temp=0;
+  double cpu_util=0;
+  while(1){
+    prev_cpu_time = get_cpu_domain_utilization();
+    prev_node_time =get_cpu_node_utilization();
+    sleep(10);
+    curr_cpu_time = get_cpu_domain_utilization();
+    curr_node_time = get_cpu_node_utilization();
+    vm_time = curr_cpu_time - prev_cpu_time;
+    node_time = curr_node_time - prev_node_time;
+    cpu_util = (cpu_util*temp + (100 * vm_time)/node_time)/++temp;
+    printf("cpu utilization = %lf\n",cpu_util);
+    fflush(stdout);
+    
+  }
+  return 0;
+}
+*/
+
+// int get_old_cpu_stats(virDomainPtr dom,unsigned char *state,unsigned short *numcpu,unsigned long long *cputime){
+//    virDomainInfoPtr info;
+//    int ret = virDomainGetInfo(dom,info);
+//    *state = info->state;
+//    *numcpu = info->nrVirtCpu;
+//    *cputime = info->cpuTime;
+//    return ret;
+
+// }
+
+
+
+ /*
+    if(get_an_inactive_vm(conn)==NULL){
+           printf("No active VM found ...exiting");
+            virConnectClose(conn);
+        return -1;
+    }
+     dom=virDomainLookupByName(conn, get_an_inactive_vm(conn));
+    
+
+    if (!dom) {
+        fprintf(stderr, "Unable to load guest configuration");
+        return -1;
+    }
+
+    if (virDomainCreate(dom) < 0) {
+        fprintf(stderr, "Unable to boot guest configuration");
+        return -1;
+    }
+    printf("Guest %s has booted up\n",inactive_vm[0]);
+    virDomainFree(dom);
+    free(inactive_vm);
+    virConnectClose(conn);
+
+    */
+
+
+/*
+void *get_cpu_domain_utilization(){
+     int nparams=0;
+     int stats_available;
+ 
+   virTypedParameterPtr params;
+  stats_available=virDomainGetCPUStats(dom, NULL, 0, -1, 1, 0);  
+    if (stats_available==0) {
+        printf("Error while getting n param value");
+        virConnectClose(conn);
+        return 0;
+    
+    }
+  
+   
+int ncpu= virDomainGetCPUStats(dom, NULL, 0, 0, 0, 0); // ncpus
+nparams =  virDomainGetCPUStats(dom, NULL, 0, 0, 1, 0); // nparams
+params = calloc(ncpu * nparams, sizeof(virTypedParameter));
+uint64_t prev_cpu_time=0,cpu_time=0;
+double cpu_usage=0;
+
+    while(1){
+   
+     stats_available=virDomainGetCPUStats(dom, params, nparams, 0, ncpu, 0);
+     if (stats_available==0)        printf("Error while getting cpu stats");
+     else{
+         for(int i=0;i<nparams;i++)
+            if(strcmp(params[i].field,"cpu_time")==0)  
+               prev_cpu_time=params[i].value.ul;
+          
+         sleep(1);
+        double nana_seconds=1000000000;
+        
+        stats_available=virDomainGetCPUStats(dom, params, nparams, 0, ncpu, 0);
+        if (stats_available==0) printf("Error while getting cpu stats");
+      else{         
+          for(int i=0;i<nparams;i++)     
+             if(strcmp(params[i].field,"cpu_time")==0)
+                  cpu_time=params[i].value.ul; 
+
+            printf("cpu_time : %ld , prev_cpu_time: %ld \n",cpu_time,prev_cpu_time);
+            cpu_usage = 100 * ((double)(cpu_time - prev_cpu_time))/nana_seconds;
+            printf("cpu usage : %lf\n",cpu_usage);
+        
+           
+                    
+        }
+       }
+     }
+      free(params);
+return 0;
+}
+*/
+
+/*
+double get_domain_cpu_time(virDomainPtr dom){
+   virDomainInfoPtr info=malloc(sizeof(virDomainInfo));
+    memset(info, 0, sizeof(virDomainInfo));
+  virDomainGetInfo(dom,info);
+
+  
+   return (info->cpuTime)/1000000000;
+  
+
+}*/
+
+int64_t Prev_idle,prev_idle,Prev_non_idle,Idle,Non_idle,prev_user,prev_kernal,prev_io_wait,Prev_total,Total=0;
+int64_t total_differentiate,idle_differentiate;
+ double culculate_cpu_utilization(virNodeCPUStatsPtr prev_params,virNodeCPUStatsPtr params,int nparam){
+   int64_t kernal,user,idle,io_wait=0;
+   double cpu_util;
+      for(int i=0;i<nparam;i++){
+              if(strcmp(prev_params[i].field,"kernel")==0){    
+                prev_kernal =  prev_params[i].value;
+              }
+               if(strcmp(prev_params[i].field,"user")==0){    
+                prev_user =  prev_params[i].value;
+                
+              }
+               if(strcmp(prev_params[i].field,"idle")==0){    
+                prev_idle =  prev_params[i].value;
+              }
+               if(strcmp(prev_params[i].field,"iowait")==0){    
+                prev_io_wait =  prev_params[i].value;
+              }
+   }
+   for(int i=0;i<nparam;i++){
+              if(strcmp(params[i].field,"kernel")==0){    
+                kernal =  params[i].value;
+              }
+               if(strcmp(params[i].field,"user")==0){    
+                user =  params[i].value;
+                
+              }
+               if(strcmp(params[i].field,"idle")==0){    
+                idle =  params[i].value;
+              }
+               if(strcmp(params[i].field,"iowait")==0){    
+                io_wait =  params[i].value;
+              }
+   }
+   
+
+   Prev_idle = prev_idle + prev_io_wait;
+   Idle = idle + io_wait;
+    
+    Prev_non_idle = prev_user + prev_kernal;
+    Non_idle=user + kernal;
+
+    Prev_total = Prev_idle + Prev_non_idle;
+    Total = Idle + Non_idle;
+    //   printf("Total : %ld Prev_total: %ld \n",Total, Prev_total);
+    //   printf("Idle : %ld Prev_idle: %ld \n",Idle,Prev_idle);
+    // uint64_t td =Total - Prev_total;
+    //  uint64_t id = Idle - Prev_idle; 
+    // printf("td : %ld id: %ld \n",td,id);
+    total_differentiate = Total - Prev_total;
+    idle_differentiate =   Idle - Prev_idle;
+
+    double td = (double)total_differentiate/10000000000;
+    double id = (double)idle_differentiate/10000000000;
+    
+
+    double diff = td-id;
+ 
+
+
+    // if(total_differentiate<0) total_differentiate= total_differentiate*(-1l);
+    // if(diff<0) diff=diff*(-1l);
+    //printf("total_differentiate : %lf id_differentiate: %lf differenc: %lf \n",td,id,diff);
+    cpu_util = diff/id;
+    
+
+   return (cpu_util*100);
+
+
+}
+
+double get_cpu_domain_utilization(virDomainPtr dom){
+  
+     int nparams=0;
+     int stats_available;
+     int64_t cpu_time_t=0;
+ 
+   virTypedParameterPtr params;
+    stats_available=virDomainGetCPUStats(dom, NULL, 0, -1, 1, 0);  
+    if (stats_available==0) {
+        printf("Error while getting n param value");
+        //virConnectClose(conn);
+        return 0;
+    
+    }
+  
+int ncpu= virDomainGetCPUStats(dom, NULL, 0, 0, 0, 0); // ncpus
+nparams =  virDomainGetCPUStats(dom, NULL, 0, 0, 1, 0); // nparams
+params = calloc(ncpu * nparams, sizeof(virTypedParameter));
+     stats_available=virDomainGetCPUStats(dom, params, nparams, 0, ncpu, 0);
+     if (stats_available==0)        printf("Error while getting cpu stats");
+     else{
+         for(int i=0;i<nparams;i++)
+            if(strcmp(params[i].field,"cpu_time")==0)  
+               cpu_time_t=params[i].value.l;       }
+     
+      free(params);
+return (double)cpu_time_t/1000000000;
+}

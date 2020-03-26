@@ -1,0 +1,4 @@
+<volume>
+ <name>server_state.img</name>
+ <capacity unit="G">10</capacity>
+</volume>
