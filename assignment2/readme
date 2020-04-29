@@ -1,0 +1,1 @@
+./gui -max_cpu=70 -min_cpu=20 -vm_wait=30 
