@@ -21,11 +21,13 @@
 
 ◦ Implemented a VM auto-scaling program that detects overload and performs horizontal scaling automatically.
     
-    When the load from single/multiple client increases, the VM manager spawns a new VM (horizontal scaling) so that the load is distribued equally among all the available VM's. When the load from client reduces, the VM Manager shut down one of the VM's.
+   When the load from single/multiple client increases, the VM manager spawns a new VM (horizontal scaling) so that the load is distribued equally among all the available VM's. When the load from client reduces, the VM Manager shut down one of the VM's.
 
 ◦ Developed a GUI-based interface to start and stop VM and display real-time metrics such as VM’s CPU utilization. 
-    The gui shows the serve name,ip, status and cpu utilization and gives the option to the user to turn on and shut down a particular VM.
-    ![Screenshot](screenshot.png)
+
+   The gui shows the serve name,ip, status and cpu utilization and gives the option to the user to turn on and shut down a particular VM.
+   
+   ![Screenshot](screenshot.png)
 
 
 
