@@ -4,7 +4,8 @@
 ◦ Objective: To build a cloud management system using the libvirt API.
 
 ◦ Built a system for load balancing and monitoring the CPU utilization of all server VM’s using the libvirt API.
-    The VM manager uses libvirt API to create and manage VM's. It has below Dependencies
+    
+   The VM manager uses libvirt API to create and manage VM's and calculates CPU utilization to monitor the VM's performance. It has below Dependencies
 
 ## Dependencies
 
