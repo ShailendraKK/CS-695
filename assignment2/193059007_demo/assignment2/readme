@@ -1,0 +1,23 @@
+To compile the vm_manager:
+	make
+
+To run the vm_manage:
+	/gui -max_cpu=70 -min_cpu=20 -vm_wait=30
+
+	where,
+	-max_cpu= the max cpu limit after which you want to spawn new VM
+	-min_cpu= the minimum cpu limit after which you need to stop the VM
+	-vm_wait= the time required for the VM to boot up completely
+
+To comile DNS_server:
+	gcc ip_addr_server.c
+
+To run the DNS server:
+	./a.out
+
+
+Steps:
+1. Compile the vm_manager if not already compiled
+2. Run vm_manager
+3. Compile the DNS server if not alread compiled
+4. Run DNS Server
