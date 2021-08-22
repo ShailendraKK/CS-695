@@ -45,6 +45,7 @@ The `193059007_demo` folder contains the small demo of **VM manager**
 Makefile is present in gui and client_server folder. Just type **make** command to compile the respective code.
 
 Running the VM manger:
-./gui -max_cpu=70 -min_cpu=20 -vm_wait=30 
+    
+    ./gui -max_cpu=70 -min_cpu=20 -vm_wait=30 
 
 The parameter are optional
