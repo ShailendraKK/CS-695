@@ -25,7 +25,7 @@
 
 ◦ Developed a GUI-based interface to start and stop VM and display real-time metrics such as VM’s CPU utilization. 
     The gui shows the serve name,ip, status and cpu utilization and gives the option to the user to turn on and shut down a particular VM.
-    ![alt text](https://github.com/ShailendraKK/CS-695/tree/master/assignment2/screenshot.png?raw=true)
+    ![Screenshot](screenshot.png)
 
 
 
